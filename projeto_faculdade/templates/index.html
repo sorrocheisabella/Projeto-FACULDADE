@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Faculdade - Landing Page</title>
+  <link rel="stylesheet" href="../static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Bem-vindo à Faculdade XYZ</h1>
+    <p>Insira seu nome e nota para acessar seu desempenho acadêmico.</p>
+  </header>
+
+  <form id="usuarioForm">
+    <label for="usuario">Usuário:</label>
+    <input type="text" id="usuario" name="usuario" required/>
+
+    5
+    <label for="nota">Nota:</label>
+    <input type="text" id="nota" name="nota" placeholder="Ex: 7.5" required />
+
+    <button type="submit">Enviar</button>
+  </form>
+
+  <p class="message" id="message"></p>
+
+  <script>
+    const form = document.getElementById('usuarioForm');
+    const message = document.getElementById('message');
+
+   form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  message.textContent = 'Enviando...';
+  message.style.color = 'black';
+
+  const usuario = form.usuario.value;
+  const nota = form.nota.value;
+
+  if (!usuario || !nota || isNaN(parseFloat(nota))) {
+    message.textContent = 'Por favor, preencha todos os campos corretamente.';
+    message.style.color = 'red';
+    return;
+  }
+
+  try {
+    const response = await fetch('/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ usuario, nota: parseFloat(nota) }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      message.textContent = `Dados enviados com sucesso! Usuário: ${result.usuario}, Nota: ${result.nota}`;
+      message.style.color = 'green';
+      form.reset();
+    } else {
+      message.textContent = result.error || 'Erro ao enviar dados.';
+      message.style.color = 'red';
+    }
+  } catch (err) {
+    message.textContent = 'Erro na comunicação com o servidor.';
+    message.style.color = 'red';
+  }
+});
+
+  </script>
+</body>
+</html>
