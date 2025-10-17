@@ -1,37 +1,93 @@
 import datetime
 from sqlalchemy import *
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker, joinedload
+from dotenv import load_dotenv,dotenv_values
+import os
+''
+load_dotenv()
+# para remder
+# variaveis_de_ambiente = dotenv_values()
+# DATABASE_URL = variaveis_de_ambiente["DATABASE_URL"]
 
-DATABASE_URL ="postgresql://neondb_owner:npg_usrPblY8HcC2@ep-dry-flower-aclboonu-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
 engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+Base = declarative_base()
 
-base = declarative_base()
+usuario_endereco_associacao = Table(
+    "usuario_endereco_associacao",
+    Base.metadata,
+    Column("usuario_id", Integer, ForeignKey("usuarios.id"), primary_key=True),
+    Column("endereco_id", Integer, ForeignKey("enderecos.id"), primary_key=True),
+)
 
-class Usuario(base):
-    __tablename__ = "usuarios" 
-    
+usuario_curso_associacao = Table(
+    "usuario_curso_associacao",
+    Base.metadata,
+    Column("usuario_id", Integer, ForeignKey("usuarios.id"), primary_key=True),
+    Column("curso_id", Integer, ForeignKey("cursos.id"), primary_key=True)
+)
+
+class Usuario(Base):
+    __tablename__ = "usuarios"  # O nome exato da tabela no banco de dados
+
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    nome = Column(String(250), nullable=False)
-    email = Column (String(255), nullable=False)
-    senha_hash = Column (String(255), nullable=False)
-    criado_em = Column (DateTime(timezone=True), default=datetime.datetime.now)
+    nome = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=False)
+    senha_hash = Column(String(255), nullable=False)
+    criado_em = Column(DateTime(timezone=True), default=datetime.datetime.now)
+
     notas = relationship("Nota", back_populates="autor")
+    usuario_enderecos = relationship("Enderecos",
+        secondary=usuario_endereco_associacao,
+        back_populates="moradores")
+    
+    usuario_cursos = relationship("Cursos", 
+        secondary=usuario_curso_associacao,
+        back_populates="alunos")
 
-class Nota (base):
+class Nota(Base):
     __tablename__ = "notas"
-
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     id_usuario = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    titulo = Column (String(255),nullable=False)
     conteudo = Column(Text)
+    titulo = Column(String(255), nullable=False)
     criado_em = Column(DateTime(timezone=True), default=datetime.datetime.now)
     modificado_em = Column(DateTime(timezone=True), default=datetime.datetime.now)
 
     autor = relationship("Usuario", back_populates="notas")
 
-if __name__ == "__main__":
-    base.metadata.create_all(bind=engine)
-    print("Tabelas criadas com sucesso (se não existiam).")
+class Enderecos(Base):
+    __tablename__ = "enderecos"
+    
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+ 
+    rua = Column(String(500), nullable=False)
+    numero = Column(Integer)
+    cep = Column(String(20))
+
+    moradores = relationship(
+        "Usuario",
+        secondary=usuario_endereco_associacao,
+        back_populates="usuario_enderecos"
+    )
+
+class Cursos(Base):
+
+    __tablename__ = "cursos"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    nome = Column(Text)
+    
+    alunos = relationship("Usuario",
+        secondary=usuario_curso_associacao,
+        back_populates='usuario_cursos')
+
+
+if __name__  == "__main__":
+    Base.metadata.create_all(bind=engine)
+    print("tabelas criadas com sucesso (se não existiam).")

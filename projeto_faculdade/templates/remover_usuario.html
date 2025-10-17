@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Remover Usuário</title>
+  <link rel="stylesheet" href="statics/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Remover Usuário</h1>
+    <p>Você tem certeza que deseja remover o usuário com ID: <span id="userId"></span>?</p>
+    <div class="buttons">
+      <button id="confirmBtn" class="btn btn-danger">Remover</button>
+      <button id="cancelBtn" class="btn btn-secondary">Cancelar</button>
+    </div>
+    <div id="message" class="message"></div>
+  </div>
+
+  <script>
+    // Pega o ID da URL
+    const urlParts = window.location.pathname.split('/');
+    const userId = urlParts[urlParts.length - 1];
+    document.getElementById('userId').textContent = userId;
+
+    const confirmBtn = document.getElementById('confirmBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const messageDiv = document.getElementById('message');
+
+    confirmBtn.addEventListener('click', () => {
+      fetch(`/remover/usuarios/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userId),
+      })
+      .then(res => {
+        if (res.redirected) {
+          window.location.href = res.url;
+        } else if (res.ok) {
+          return res.json();
+        } else {
+          return res.json().then(data => { throw new Error(data.error || 'Erro ao remover usuário'); });
+        }
+      })
+      .then(data => {
+        messageDiv.textContent = "Usuário removido com sucesso!";
+        messageDiv.style.color = "green";
+        setTimeout(() => window.location.href = "/", 2000);
+      })
+      .catch(err => {
+        messageDiv.textContent = err.message;
+        messageDiv.style.color = "red";
+      });
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      window.location.href = "/";
+    });
+  </script>
+</body>
+</html>

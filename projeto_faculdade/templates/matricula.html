@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>Matrícula</title>
+    <link rel="stylesheet" href="statics/styles.css" />
+</head>
+<body>
+    <h1>Confirme sua Matrícula</h1>
+    <p>Usuário ID: <span id="usuario-id"></span></p>
+    <p>Curso ID: <span id="curso-id"></span></p>
+
+    <button id="matricular-btn">Confirmar Matrícula</button>
+
+    <script>
+        // Pega os IDs da URL
+        const pathParts = window.location.pathname.split('/');
+        const id_usuario = pathParts[2];
+        const id_curso = pathParts[3];
+
+        // Mostra os IDs na tela
+        document.getElementById('usuario-id').textContent = id_usuario;
+        document.getElementById('curso-id').textContent = id_curso;
+
+        document.getElementById('matricular-btn').addEventListener('click', () => {
+            fetch(window.location.pathname, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id_usuario, id_curso })
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else if (!response.ok) {
+                    return response.json().then(data => {
+                        alert("Erro: " + data.error);
+                    });
+                }
+            })
+            .catch(error => alert("Erro na requisição: " + error));
+        });
+    </script>
+</body>
+</html>

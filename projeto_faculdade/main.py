@@ -1,4 +1,4 @@
-from tabelas import SessionLocal, Usuario, Nota
+from tabelas import SessionLocal, Usuario, Nota, Cursos, joinedload
 
 db = SessionLocal()
 
@@ -8,34 +8,50 @@ def criar_novo_usuario_e_nota(novo_usuario: Usuario, nova_nota: Nota):
     db.commit()
     print(f"Usuario '{novo_usuario.nome}' criado com ID: {novo_usuario.id}")
 
-    db.add(nova_nota)
-    db.commit ()
+    note = Nota(
+        id_usuario=novo_usuario.id,
+        titulo=nova_nota.conteudo
+    )
+    db.add(note)
+    db.commit()
 
 
-def autualizar_nota(id_nota: int,titulo:str ,conteudo:str):
+def atualizar_nota(id_nota: int, titulo:str, conteudo: str):
+
     nota_para_editar = db.query(Nota).filter(Nota.id == id_nota).first()
 
     if nota_para_editar:
-
-        nota_para_editar.titulo = titulo
-        nota_para_editar.conteudo = conteudo
+       
+        nota_para_editar.titulo=titulo
+        nota_para_editar.conteudo=conteudo
 
         db.commit()
-    
     else:
         print("Nota com ID % não encontrada." % id_nota)
 
 def ler_dados():
 
-    users = db.query(Usuario).all()
+    users = db.query(Usuario).options(joinedload(Usuario.notas)).all()
 
-    if users:
-        
-        for nota in users.notas:
-            print(f"  - conteudo: {nota.conteudo} (ID {nota.id})")
-        return users , nota
-    else:
-        print("Usuario(a) nao encontrado.")
+    resultado = []
+    for u in users:
+        notas = []
+        for n in u.notas:
+            notas.append({
+                "id": n.id,
+                "titulo": n.titulo,
+                "conteudo": n.conteudo,
+                "criado_em": n.criado_em
+            })
+
+        resultado.append({
+            "id": u.id,
+            "usuario": u.nome,
+            "email": u.email,
+            "criado_em": u.criado_em,
+            "notas": notas
+        })
+    return resultado
 
 def deletar_usuario(id_usuario: int):
 
@@ -43,9 +59,48 @@ def deletar_usuario(id_usuario: int):
 
     if usuario_deletado:
 
+        usuarios = db.query(Usuario).options(joinedload(Usuario.notas)).filter(
+            Usuario.id == usuario_deletado.id).all()
+        
+        for u in usuarios:
+            for n in u.notas:
+                nota_deletada = db.query(Nota).filter(Nota.id == n.id).first()
+                db.delete(nota_deletada)
+                db.commit()
+
+
+
         db.delete(usuario_deletado)
         db.commit()
 
         print(f"Usuario: '{usuario_deletado.nome}' removido com sucesso!")       
     else:
         print("Nota com ID % não encontrada." % id_usuario)
+
+def login_de_usuario(usr: Usuario):
+    usuario_logado = db.query(Usuario).filter(
+    Usuario.email == usr.email and Usuario.senha_hash == usr.senha_hash).first()
+
+    print(usuario_logado)
+    resultado = []
+    if usuario_logado:
+        resultado.append({
+            "id": usuario_logado.id,
+            "usuario": usuario_logado.nome,
+            "email": usuario_logado.email,
+            "criado_em": usuario_logado.criado_em
+        })
+        return resultado
+    else:
+        print("Usuário não encontrado")
+
+def matricular_aluno(id_aluno: int, id_curso: int):
+    curso = db.query(Cursos).filter(Cursos.id == id_curso).first()
+    aluno = db.query(Usuario).filter(Usuario.id == id_aluno).first()
+
+    if (curso and aluno):
+        aluno.usuario_cursos.append(curso)
+        db.commit()
+        return print(f'Aluno: {aluno.nome} matriculado {curso.nome} com sucesso!')
+    else:
+        return print('Erro ao realizar Matricula.')
